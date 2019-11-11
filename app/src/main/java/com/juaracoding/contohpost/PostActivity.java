@@ -21,6 +21,8 @@ import com.github.angads25.filepicker.view.FilePickerDialog;
 import com.juaracoding.contohpost.APIService.APIClient;
 import com.juaracoding.contohpost.APIService.APIInterfacesRest;
 import com.juaracoding.contohpost.APIService.AppUtil;
+import com.labters.lottiealertdialoglibrary.DialogTypes;
+import com.labters.lottiealertdialoglibrary.LottieAlertDialog;
 import com.otaliastudios.cameraview.BitmapCallback;
 import com.otaliastudios.cameraview.CameraListener;
 import com.otaliastudios.cameraview.CameraView;
@@ -56,6 +58,20 @@ public class PostActivity extends AppCompatActivity {
     Button btnCapture, btnSend, btnGallery;
     Bitmap gambarnya;
 
+
+    //untuk dialog progress
+
+    LottieAlertDialog progressDialog;
+
+    public void setProgressDialog() {
+        progressDialog = new LottieAlertDialog.Builder(PostActivity.this, DialogTypes.TYPE_LOADING)
+                .setTitle("Loading")
+                .setDescription("Please Wait")
+                .build();
+        progressDialog.setCancelable(false);
+    }
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,6 +83,11 @@ public class PostActivity extends AppCompatActivity {
         btnCapture = findViewById(R.id.btnCapture);
         btnSend = findViewById(R.id.btnKirim);
         btnGallery = findViewById(R.id.btnGallery);
+
+        //add progress dialog
+        setProgressDialog();
+
+        //add datetimepicker
         final DateTimePicker.Builder builder = new DateTimePicker.Builder(this, R.style.Theme_AppCompat);
 
         Calendar date = Calendar.getInstance();
@@ -97,6 +118,8 @@ public class PostActivity extends AppCompatActivity {
             }
         });
 
+
+        //add camera view
         camera = findViewById(R.id.camera);
         camera.setLifecycleOwner(this);
         camera.setFilter(Filters.BLACK_AND_WHITE.newInstance());
@@ -134,6 +157,7 @@ public class PostActivity extends AppCompatActivity {
         });
 
 
+        //add file picker
         DialogProperties properties = new DialogProperties();
         properties.selection_mode = DialogConfigs.SINGLE_MODE;
         properties.selection_type = DialogConfigs.FILE_SELECT;
@@ -215,13 +239,17 @@ public class PostActivity extends AppCompatActivity {
     APIInterfacesRest apiInterface;
 
 
+    //send post data with image
     private void sendData(Bitmap bitmap) {
+
+
+        progressDialog.show();
 
 
         File file = createTempFile(bitmap);
         byte[] bImg1 = AppUtil.FiletoByteArray(file);
-
-        RequestBody requestFile1 = RequestBody.create(MediaType.parse("image/jpeg"), compressCapture(bImg1, 900));
+        RequestBody requestFile1 = RequestBody.create(MediaType.parse("image/jpeg"),bImg1);
+      //  RequestBody requestFile1 = RequestBody.create(MediaType.parse("image/jpeg"), compressCapture(bImg1, 900));
         MultipartBody.Part bodyImg1 =
                 MultipartBody.Part.createFormData("gambar", file.getName() + ".jpg", requestFile1);
 
@@ -241,6 +269,7 @@ public class PostActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<ModelAdd> call, Response<ModelAdd> response) {
 
+                progressDialog.dismiss();
 
                 ModelAdd responServer = response.body();
 
@@ -255,7 +284,7 @@ public class PostActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<ModelAdd> call, Throwable t) {
 
-
+                progressDialog.show();
                 Toast.makeText(PostActivity.this, "Maaf koneksi bermasalah", Toast.LENGTH_LONG).show();
                 call.cancel();
             }
@@ -263,6 +292,8 @@ public class PostActivity extends AppCompatActivity {
 
     }
 
+
+    //change string to requestbody
     public RequestBody toRequestBody(String value) {
         if (value == null) {
             value = "";
@@ -271,6 +302,8 @@ public class PostActivity extends AppCompatActivity {
         return body;
     }
 
+
+    //compress picture
     public static byte[] compressCapture(byte[] capture, int maxSizeKB) {
 
         // This should be different based on the original capture size
@@ -282,12 +315,13 @@ public class PostActivity extends AppCompatActivity {
         return outputStream.toByteArray();
     }
 
+    //bitmap to file
     private File createTempFile(Bitmap bitmap) {
         File file = new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-                , System.currentTimeMillis() + "_image.webp");
+                , System.currentTimeMillis() + "");
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        bitmap.compress(Bitmap.CompressFormat.WEBP, 0, bos);
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bos);
         byte[] bitmapdata = bos.toByteArray();
         //write the bytes in file
 
