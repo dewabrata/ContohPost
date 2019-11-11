@@ -97,6 +97,12 @@
             android:layout_height="wrap_content"
             android:text="Capture" />
 
+        <Button
+            android:id="@+id/btnGallery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Open Gallery" />
+
     </LinearLayout>
 
     <Button
