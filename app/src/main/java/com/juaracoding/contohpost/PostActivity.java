@@ -4,42 +4,64 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.github.angads25.filepicker.controller.DialogSelectionListener;
 import com.github.angads25.filepicker.model.DialogConfigs;
 import com.github.angads25.filepicker.model.DialogProperties;
 import com.github.angads25.filepicker.view.FilePickerDialog;
+import com.juaracoding.contohpost.APIService.APIClient;
+import com.juaracoding.contohpost.APIService.APIInterfacesRest;
+import com.juaracoding.contohpost.APIService.AppUtil;
 import com.otaliastudios.cameraview.BitmapCallback;
 import com.otaliastudios.cameraview.CameraListener;
 import com.otaliastudios.cameraview.CameraView;
 import com.otaliastudios.cameraview.PictureResult;
 import com.otaliastudios.cameraview.filter.Filters;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
 import io.github.jrizani.jrdatetimepicker.DateTimePicker;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class PostActivity extends AppCompatActivity {
 
-    EditText txtDari,txtTime,txtText;
+    EditText txtDari, txtTime, txtText;
     ImageView imgHasil;
     CameraView camera;
     Button btnCapture, btnSend, btnGallery;
+    Bitmap gambarnya;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_post);
         txtDari = findViewById(R.id.txtDari);
-        txtTime =  findViewById(R.id.txtTime);
+        txtTime = findViewById(R.id.txtTime);
         txtText = findViewById(R.id.txtText);
         imgHasil = findViewById(R.id.imageView);
         btnCapture = findViewById(R.id.btnCapture);
@@ -90,6 +112,7 @@ public class PostActivity extends AppCompatActivity {
                     public void onBitmapReady(@Nullable Bitmap bitmap) {
 
                         imgHasil.setImageBitmap(bitmap);
+                        gambarnya = bitmap;
 
                     }
                 });
@@ -111,7 +134,6 @@ public class PostActivity extends AppCompatActivity {
         });
 
 
-
         DialogProperties properties = new DialogProperties();
         properties.selection_mode = DialogConfigs.SINGLE_MODE;
         properties.selection_type = DialogConfigs.FILE_SELECT;
@@ -120,7 +142,7 @@ public class PostActivity extends AppCompatActivity {
         properties.offset = new File(DialogConfigs.DEFAULT_DIR);
         properties.extensions = null;
 
-        final FilePickerDialog dialogPicker = new FilePickerDialog(PostActivity.this,properties);
+        final FilePickerDialog dialogPicker = new FilePickerDialog(PostActivity.this, properties);
         dialogPicker.setTitle("Pilih file csv");
 
         dialogPicker.setDialogSelectionListener(new DialogSelectionListener() {
@@ -128,7 +150,24 @@ public class PostActivity extends AppCompatActivity {
             public void onSelectedFilePaths(String[] files) {
                 //files is the array of the paths of files selected by the Application User.
 
-                Picasso.get().load("file://" +files[0]).into(imgHasil);
+
+                Picasso.get().load("file://" + files[0]).into(new Target() {
+                    @Override
+                    public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                        imgHasil.setImageBitmap(bitmap);
+                        gambarnya = bitmap;
+                    }
+
+                    @Override
+                    public void onBitmapFailed(Exception e, Drawable errorDrawable) {
+                        Toast.makeText(PostActivity.this, "Maaf gambar gagal diload", Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override
+                    public void onPrepareLoad(Drawable placeHolderDrawable) {
+
+                    }
+                });
             }
         });
 
@@ -137,6 +176,19 @@ public class PostActivity extends AppCompatActivity {
             public void onClick(View view) {
 
                 dialogPicker.show();
+            }
+        });
+
+        btnSend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                if(gambarnya!=null){
+                    sendData(gambarnya);
+                }else{
+                    Toast.makeText(PostActivity.this, "Maaf koneksi bermasalah", Toast.LENGTH_LONG).show();
+                }
+
             }
         });
     }
@@ -157,6 +209,97 @@ public class PostActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         camera.destroy();
+    }
+
+
+    APIInterfacesRest apiInterface;
+
+
+    private void sendData(Bitmap bitmap) {
+
+
+        File file = createTempFile(bitmap);
+        byte[] bImg1 = AppUtil.FiletoByteArray(file);
+
+        RequestBody requestFile1 = RequestBody.create(MediaType.parse("image/jpeg"), compressCapture(bImg1, 900));
+        MultipartBody.Part bodyImg1 =
+                MultipartBody.Part.createFormData("gambar", file.getName() + ".jpg", requestFile1);
+
+
+        apiInterface = APIClient.getClient().create(APIInterfacesRest.class);
+
+
+        Call<ModelAdd> postAdd = apiInterface.sendTextJalan(
+
+                toRequestBody(AppUtil.replaceNull(txtDari.getText().toString())),
+                toRequestBody(AppUtil.replaceNull(txtTime.getText().toString())),
+                toRequestBody(AppUtil.replaceNull(txtText.getText().toString())),
+                toRequestBody(AppUtil.replaceNull("OK")),
+                bodyImg1);
+
+        postAdd.enqueue(new Callback<ModelAdd>() {
+            @Override
+            public void onResponse(Call<ModelAdd> call, Response<ModelAdd> response) {
+
+
+                ModelAdd responServer = response.body();
+
+                if (responServer != null) {
+
+                    Toast.makeText(PostActivity.this,responServer.getMessage(),Toast.LENGTH_LONG).show();
+
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<ModelAdd> call, Throwable t) {
+
+
+                Toast.makeText(PostActivity.this, "Maaf koneksi bermasalah", Toast.LENGTH_LONG).show();
+                call.cancel();
+            }
+        });
+
+    }
+
+    public RequestBody toRequestBody(String value) {
+        if (value == null) {
+            value = "";
+        }
+        RequestBody body = RequestBody.create(MediaType.parse("text/plain"), value);
+        return body;
+    }
+
+    public static byte[] compressCapture(byte[] capture, int maxSizeKB) {
+
+        // This should be different based on the original capture size
+        int compression = 12;
+
+        Bitmap bitmap = BitmapFactory.decodeByteArray(capture, 0, capture.length);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, compression, outputStream);
+        return outputStream.toByteArray();
+    }
+
+    private File createTempFile(Bitmap bitmap) {
+        File file = new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+                , System.currentTimeMillis() + "_image.webp");
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+        bitmap.compress(Bitmap.CompressFormat.WEBP, 0, bos);
+        byte[] bitmapdata = bos.toByteArray();
+        //write the bytes in file
+
+        try {
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(bitmapdata);
+            fos.flush();
+            fos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return file;
     }
 
 
