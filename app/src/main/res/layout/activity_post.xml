@@ -7,6 +7,16 @@
     android:orientation="vertical"
     tools:context=".PostActivity">
 
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/LottieAnimationViewId"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        app:lottie_autoPlay="true"
+        app:lottie_fileName="cats.json"
+        app:lottie_repeatCount="100" />
+
     <TextView
         android:id="@+id/textView"
         android:layout_width="match_parent"

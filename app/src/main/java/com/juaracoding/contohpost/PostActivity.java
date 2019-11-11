@@ -66,9 +66,11 @@ public class PostActivity extends AppCompatActivity {
     public void setProgressDialog() {
         progressDialog = new LottieAlertDialog.Builder(PostActivity.this, DialogTypes.TYPE_LOADING)
                 .setTitle("Loading")
+
                 .setDescription("Please Wait")
                 .build();
         progressDialog.setCancelable(false);
+
     }
 
 
