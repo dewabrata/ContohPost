@@ -1,13 +1,29 @@
 package com.juaracoding.contohpost;
 
+
+
+import com.raizlabs.android.dbflow.annotation.Column;
+import com.raizlabs.android.dbflow.annotation.PrimaryKey;
+import com.raizlabs.android.dbflow.annotation.Table;
+import com.raizlabs.android.dbflow.structure.BaseModel;
+
 import java.util.Date;
 
-public class ModelPost {
+@Table(database = ContohPostApplication.class)
+public class ModelPost extends BaseModel {
 
+    @PrimaryKey
+    @Column
+    int id;
+    @Column
     String dari;
+    @Column
     Date time;
+    @Column
     String text;
+    @Column
     String gambar;
+    @Column
     String status;
 
     public ModelPost() {
@@ -51,5 +67,13 @@ public class ModelPost {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 }
